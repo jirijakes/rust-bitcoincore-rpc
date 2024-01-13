@@ -193,7 +193,7 @@ impl Eq for ScanningDetails {}
 
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetBlockResult {
+pub struct GetBlockResult<Tx = bitcoin::Txid> {
     pub hash: bitcoin::BlockHash,
     pub confirmations: i32,
     pub size: usize,
@@ -204,7 +204,7 @@ pub struct GetBlockResult {
     #[serde(default, with = "crate::serde_hex::opt")]
     pub version_hex: Option<Vec<u8>>,
     pub merkleroot: bitcoin::hash_types::TxMerkleNode,
-    pub tx: Vec<bitcoin::Txid>,
+    pub tx: Vec<Tx>,
     pub time: usize,
     pub mediantime: Option<usize>,
     pub nonce: u32,
@@ -216,6 +216,36 @@ pub struct GetBlockResult {
     pub previousblockhash: Option<bitcoin::BlockHash>,
     pub nextblockhash: Option<bitcoin::BlockHash>,
 }
+
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetRawTransactionPrevoutResultVin {
+    pub sequence: u32,
+    /// The raw scriptSig in case of a coinbase tx.
+    #[serde(default, with = "crate::serde_hex::opt")]
+    pub coinbase: Option<Vec<u8>>,
+    /// Not provided for coinbase txs.
+    pub txid: Option<bitcoin::Txid>,
+    /// Not provided for coinbase txs.
+    pub vout: Option<u32>,
+    pub prevout: Option<GetRawTransactionPrevout>,
+    /// The scriptSig in case of a non-coinbase tx.
+    pub script_sig: Option<GetRawTransactionResultVinScriptSig>,
+    /// Not provided for coinbase txs.
+    #[serde(default, deserialize_with = "deserialize_hex_array_opt")]
+    pub txinwitness: Option<Vec<Vec<u8>>>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetRawTransactionPrevout {
+    #[serde(with = "bitcoin::amount::serde::as_btc")]
+    pub value: Amount,
+    pub height: u64,
+    pub generated: bool,
+    pub script_pub_key: GetRawTransactionResultVoutScriptPubKey,
+}
+
 
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -594,7 +624,7 @@ pub struct GetRawTransactionResultVout {
 
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetRawTransactionResult {
+pub struct GetRawTransactionResult<Vin = GetRawTransactionResultVin> {
     #[serde(rename = "in_active_chain")]
     pub in_active_chain: Option<bool>,
     #[serde(with = "crate::serde_hex")]
@@ -605,7 +635,7 @@ pub struct GetRawTransactionResult {
     pub vsize: usize,
     pub version: u32,
     pub locktime: u32,
-    pub vin: Vec<GetRawTransactionResultVin>,
+    pub vin: Vec<Vin>,
     pub vout: Vec<GetRawTransactionResultVout>,
     pub blockhash: Option<bitcoin::BlockHash>,
     pub confirmations: Option<u32>,
